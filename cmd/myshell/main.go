@@ -14,7 +14,7 @@ import (
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
 var _ = fmt.Fprint
 
-var builtinCmds = []string{"echo", "exit", "type", "pwd"}
+var builtinCmds = []string{"echo", "exit", "type", "pwd", "cd"}
 
 func handleCommand(command string) {
 	args := strings.Split(command, " ")
@@ -55,6 +55,8 @@ func handleCommand(command string) {
 	case "pwd":
 		pwd, _ := os.Getwd()
 		fmt.Println(pwd)
+	case "cd":
+		os.Chdir(args[0])
 	default:
 		cmdToExecute := exec.Command(cmd, args...)
 		cmdToExecute.Stderr = os.Stderr
