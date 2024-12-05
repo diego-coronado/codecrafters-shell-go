@@ -10,6 +10,8 @@ import (
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
 var _ = fmt.Fprint
 
+var builtinCmds = []string{"echo", "exit", "type"}
+
 func handleCommand(command string) {
 	if command == "exit 0" {
 		os.Exit(0)
@@ -19,6 +21,20 @@ func handleCommand(command string) {
 	switch split[0] {
 	case "echo":
 		fmt.Println(strings.Join(split[1:], " "))
+	case "type":
+		check := split[1]
+		found := false
+		for _, cmd := range builtinCmds {
+			if cmd == check {
+				found = true
+				break
+			}
+		}
+		if found {
+			fmt.Printf("%s is a shell function\n", check)
+		} else {
+			fmt.Printf("%s: command not found\n", check)
+		}
 	default:
 		fmt.Println(command + ": command not found")
 	}
