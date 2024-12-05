@@ -53,22 +53,12 @@ func handleCommand(command string) {
 			}
 		}
 	default:
-		// check if command is in PATH
-		filePath, found := findInPath(cmd)
-
-		if found {
-			cmdToExecute := exec.Command(filePath, args...)
-			stdout, err := cmdToExecute.Output()
-
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-
-			// Print the output
-			fmt.Println(string(stdout))
-		} else {
-			fmt.Println(command + ": command not found")
+		command := exec.Command(cmd, args...)
+		command.Stderr = os.Stderr
+		command.Stdout = os.Stdout
+		err := command.Run()
+		if err != nil {
+			fmt.Printf("%s: command not found\n", cmd)
 		}
 	}
 }
