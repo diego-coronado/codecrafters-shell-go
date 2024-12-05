@@ -33,7 +33,7 @@ func handleCommand(command string) {
 		if found {
 			fmt.Printf("%s is a shell builtin\n", check)
 		} else {
-			fmt.Printf("%s: command not found\n", check)
+			fmt.Printf("%s: not found\n", check)
 		}
 	default:
 		fmt.Println(command + ": command not found")
