@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -32,34 +33,55 @@ func handleCommand(command string) {
 	case "echo":
 		fmt.Println(strings.Join(args, " "))
 	case "type":
-		check := args[0]
+		cmdName := args[0]
 		found := false
 		for _, cmd := range builtinCmds {
-			if cmd == check {
+			if cmd == cmdName {
 				found = true
 				break
 			}
 		}
 		if found {
-			fmt.Printf("%s is a shell builtin\n", check)
+			fmt.Printf("%s is a shell builtin\n", cmdName)
 		} else {
-			pathDirs := strings.Split(os.Getenv("PATH"), string(os.PathListSeparator))
-			for _, dir := range pathDirs {
-				filePath := filepath.Join(dir, check)
-				if fileInfo, err := os.Stat(filePath); err == nil && !fileInfo.IsDir() && isExecutable(fileInfo.Mode()) {
-					fmt.Printf("%s is %s\n", check, filePath)
-					found = true
-					break
-				}
-			}
+			filePath, found := findInPath(cmdName)
 
-			if !found {
-				fmt.Printf("%s: not found\n", check)
+			if found {
+				fmt.Printf("%s is %s\n", cmdName, filePath)
+			} else {
+				fmt.Printf("%s: not found\n", cmdName)
 			}
 		}
 	default:
-		fmt.Println(command + ": command not found")
+		// check if command is in PATH
+		filePath, found := findInPath(cmd)
+
+		if found {
+			cmdToExecute := exec.Command(filePath, args...)
+			stdout, err := cmdToExecute.Output()
+
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+
+			// Print the output
+			fmt.Println(string(stdout))
+		} else {
+			fmt.Println(command + ": command not found")
+		}
 	}
+}
+
+func findInPath(cmdName string) (string, bool) {
+	pathDirs := strings.Split(os.Getenv("PATH"), string(os.PathListSeparator))
+	for _, dir := range pathDirs {
+		filePath := filepath.Join(dir, cmdName)
+		if fileInfo, err := os.Stat(filePath); err == nil && !fileInfo.IsDir() && isExecutable(fileInfo.Mode()) {
+			return filePath, true
+		}
+	}
+	return "", false
 }
 
 func isExecutable(fileMode fs.FileMode) bool {
