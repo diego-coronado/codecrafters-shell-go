@@ -58,7 +58,7 @@ func handleCommand(command string) {
 	case "cd":
 		err := os.Chdir(args[0])
 		if err != nil {
-			fmt.Printf("cd: %s : No such file or directory\n", args[0])
+			fmt.Printf("cd: %s: No such file or directory\n", args[0])
 		}
 	default:
 		cmdToExecute := exec.Command(cmd, args...)
