@@ -31,6 +31,11 @@ func handleCommand(command string) {
 			os.Exit(exitCode)
 		}
 	case "echo":
+		argStr := strings.Join(args, " ")
+		if argStr[0] == '\'' && argStr[len(argStr)-1] == '\'' {
+			fmt.Println(argStr[1 : len(argStr)-1])
+			return
+		}
 		fmt.Println(strings.Join(args, " "))
 	case "type":
 		cmdName := args[0]
