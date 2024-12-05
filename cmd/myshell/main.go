@@ -56,9 +56,13 @@ func handleCommand(command string) {
 		pwd, _ := os.Getwd()
 		fmt.Println(pwd)
 	case "cd":
-		err := os.Chdir(args[0])
+		dir := args[0]
+		if dir == "~" {
+			dir = os.Getenv("HOME")
+		}
+		err := os.Chdir(dir)
 		if err != nil {
-			fmt.Printf("cd: %s: No such file or directory\n", args[0])
+			fmt.Printf("cd: %s: No such file or directory\n", dir)
 		}
 	default:
 		cmdToExecute := exec.Command(cmd, args...)
