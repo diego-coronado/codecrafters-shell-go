@@ -35,8 +35,15 @@ func handleCommand(command string) {
 		if argStr[0] == '\'' && argStr[len(argStr)-1] == '\'' {
 			fmt.Println(argStr[1 : len(argStr)-1])
 			return
+		} else {
+			var nonEmptyArgs []string
+			for i := range args {
+				if len(args[i]) != 0 {
+					nonEmptyArgs = append(nonEmptyArgs, args[i])
+				}
+			}
+			fmt.Println(strings.Join(nonEmptyArgs, " "))
 		}
-		fmt.Println(strings.Join(args, " "))
 	case "type":
 		cmdName := args[0]
 		found := false
