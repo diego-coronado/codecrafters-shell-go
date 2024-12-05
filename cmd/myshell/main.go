@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -41,11 +43,28 @@ func handleCommand(command string) {
 		if found {
 			fmt.Printf("%s is a shell builtin\n", check)
 		} else {
-			fmt.Printf("%s: not found\n", check)
+			pathDirs := strings.Split(os.Getenv("PATH"), string(os.PathListSeparator))
+			for _, dir := range pathDirs {
+				filePath := filepath.Join(dir, check)
+				if fileInfo, err := os.Stat(filePath); err == nil && !fileInfo.IsDir() && isExecutable(fileInfo.Mode()) {
+					fmt.Printf("%s is %s\n", check, filePath)
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				fmt.Printf("%s: not found\n", check)
+			}
 		}
 	default:
 		fmt.Println(command + ": command not found")
 	}
+}
+
+func isExecutable(fileMode fs.FileMode) bool {
+	// found how to do the check on stackoverflow
+	return fileMode&0111 != 0
 }
 
 func main() {
