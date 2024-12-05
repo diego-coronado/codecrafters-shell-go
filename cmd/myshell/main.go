@@ -53,10 +53,10 @@ func handleCommand(command string) {
 			}
 		}
 	default:
-		command := exec.Command(cmd, args...)
-		command.Stderr = os.Stderr
-		command.Stdout = os.Stdout
-		err := command.Run()
+		cmdToExecute := exec.Command(cmd, args...)
+		cmdToExecute.Stderr = os.Stderr
+		cmdToExecute.Stdout = os.Stdout
+		err := cmdToExecute.Run()
 		if err != nil {
 			fmt.Printf("%s: command not found\n", cmd)
 		}
