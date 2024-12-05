@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -13,16 +14,23 @@ var _ = fmt.Fprint
 var builtinCmds = []string{"echo", "exit", "type"}
 
 func handleCommand(command string) {
-	if command == "exit 0" {
-		os.Exit(0)
-	}
+	args := strings.Split(command, " ")
+	cmd := args[0]
+	args = args[1:]
 
-	split := strings.Split(command, " ")
-	switch split[0] {
+	switch cmd {
+	case "exit":
+		if len(args) == 1 {
+			exitCode, err := strconv.Atoi(args[0])
+			if err != nil {
+				fmt.Print(err)
+			}
+			os.Exit(exitCode)
+		}
 	case "echo":
-		fmt.Println(strings.Join(split[1:], " "))
+		fmt.Println(strings.Join(args, " "))
 	case "type":
-		check := split[1]
+		check := args[0]
 		found := false
 		for _, cmd := range builtinCmds {
 			if cmd == check {
