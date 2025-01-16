@@ -16,9 +16,8 @@ var _ = fmt.Fprint
 
 var builtinCmds = []string{"echo", "exit", "type", "pwd", "cd"}
 
-func handleCommand(command string) {
-	args := strings.Split(command, " ")
-	cmd := args[0]
+func handleCommand(args []string) {
+	cmd := strings.Trim(args[0], " ")
 	args = args[1:]
 
 	switch cmd {
@@ -31,19 +30,8 @@ func handleCommand(command string) {
 			os.Exit(exitCode)
 		}
 	case "echo":
-		argStr := strings.Join(args, " ")
-		if argStr[0] == '\'' && argStr[len(argStr)-1] == '\'' {
-			fmt.Println(argStr[1 : len(argStr)-1])
-			return
-		} else {
-			var nonEmptyArgs []string
-			for i := range args {
-				if len(args[i]) != 0 {
-					nonEmptyArgs = append(nonEmptyArgs, args[i])
-				}
-			}
-			fmt.Println(strings.Join(nonEmptyArgs, " "))
-		}
+		fmt.Println(strings.Join(args, " "))
+		return
 	case "type":
 		cmdName := args[0]
 		found := false
@@ -103,6 +91,73 @@ func isExecutable(fileMode fs.FileMode) bool {
 	return fileMode&0111 != 0
 }
 
+func handleSingleQuote(cmd string) []string {
+	// Remove any trailing newlines or carriage returns
+	ss := strings.Trim(cmd, "\r\n")
+	var tokens []string
+	var currentToken strings.Builder
+	var inSingleQuote bool // tracks if we're inside single quotes
+	var lastWasQuote bool  // tracks if we just finished a quoted section (for merging adjacent quotes)
+
+	// First, extract the command (first word) using Fields to handle multiple spaces
+	fields := strings.Fields(ss)
+	if len(fields) == 0 {
+		return nil
+	}
+	tokens = append(tokens, fields[0])
+
+	// Remove the command portion from the string and any leading spaces
+	ss = ss[len(fields[0]):]
+	ss = strings.TrimSpace(ss)
+
+	// Process the arguments character by character
+	for i := 0; i < len(ss); i++ {
+		ch := ss[i]
+
+		if ch == '\'' {
+			if !inSingleQuote {
+				// Found opening quote
+				inSingleQuote = true
+				// Only append current token if:
+				// 1. We have accumulated characters AND
+				// 2. We're not continuing from a previous quote (for merging adjacent quotes)
+				if currentToken.Len() > 0 && !lastWasQuote {
+					tokens = append(tokens, currentToken.String())
+					currentToken.Reset()
+				}
+			} else {
+				// Found closing quote
+				// Don't append the token yet - wait to see if another quote follows
+				inSingleQuote = false
+				lastWasQuote = true
+			}
+		} else {
+			if inSingleQuote {
+				// Inside quotes: preserve all characters literally, including spaces
+				currentToken.WriteByte(ch)
+			} else {
+				// Outside quotes: handle spaces as token separators
+				lastWasQuote = false // No longer in a position to merge quotes
+				if ch != ' ' {
+					// Collect non-space characters into current token
+					currentToken.WriteByte(ch)
+				} else if currentToken.Len() > 0 {
+					// Space found: if we have a token, append it
+					tokens = append(tokens, currentToken.String())
+					currentToken.Reset()
+				}
+			}
+		}
+	}
+
+	// Append any remaining characters as the final token
+	if currentToken.Len() > 0 {
+		tokens = append(tokens, currentToken.String())
+	}
+
+	return tokens
+}
+
 func main() {
 	for {
 		fmt.Fprint(os.Stdout, "$ ")
@@ -111,12 +166,13 @@ func main() {
 		var cmdStr, err = bufio.NewReader(os.Stdin).ReadString('\n')
 		// get rid of \n
 		command := cmdStr[:len(cmdStr)-1]
+		args := handleSingleQuote(command)
 
 		if err != nil {
 			fmt.Println("error ", err)
 			os.Exit(1)
 		}
 
-		handleCommand(command)
+		handleCommand(args)
 	}
 }
