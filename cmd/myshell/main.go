@@ -121,6 +121,9 @@ func handleQuotes(cmd string) []string {
 			if inDoubleQuote && (ch == '\\' || ch == '$' || ch == '"' || ch == '\n') {
 				// In double quotes, only escape special characters
 				currentToken.WriteByte(ch)
+			} else if inDoubleQuote {
+				currentToken.WriteByte('\\')
+				currentToken.WriteByte(ch)
 			} else if !inSingleQuote {
 				// Outside single quotes, escape any character literally
 				currentToken.WriteByte(ch)
