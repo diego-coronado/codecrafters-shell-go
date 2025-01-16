@@ -99,7 +99,7 @@ func handleQuotes(cmd string) []string {
 	var inSingleQuote bool // tracks if we're inside single quotes
 	var inDoubleQuote bool // tracks if we're inside double quotes
 	var lastWasQuote bool  // tracks if we just finished a quoted section (for merging adjacent quotes)
-	var escaped bool       // tracks if next character is escaped (for double quotes)
+	var escaped bool       // tracks if next character is escaped (for double quotes or outside quotes)
 
 	// First, extract the command (first word) using Fields to handle multiple spaces
 	fields := strings.Fields(ss)
@@ -117,12 +117,15 @@ func handleQuotes(cmd string) []string {
 		ch := ss[i]
 
 		if escaped {
-			// Handle escaped character in double quotes
+			// Handle escaped character
 			if inDoubleQuote && (ch == '\\' || ch == '$' || ch == '"' || ch == '\n') {
+				// In double quotes, only escape special characters
+				currentToken.WriteByte(ch)
+			} else if !inSingleQuote {
+				// Outside single quotes, escape any character literally
 				currentToken.WriteByte(ch)
 			} else {
-				// If not a special escaped character in double quotes,
-				// write both the backslash and the character
+				// In single quotes, write both backslash and character
 				currentToken.WriteByte('\\')
 				currentToken.WriteByte(ch)
 			}
@@ -130,7 +133,8 @@ func handleQuotes(cmd string) []string {
 			continue
 		}
 
-		if ch == '\\' && inDoubleQuote {
+		if ch == '\\' && !inSingleQuote {
+			// Handle backslash escaping in double quotes and outside quotes
 			escaped = true
 			continue
 		}
