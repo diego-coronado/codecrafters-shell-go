@@ -101,15 +101,7 @@ func handleQuotes(cmd string) []string {
 	var lastWasQuote bool  // tracks if we just finished a quoted section (for merging adjacent quotes)
 	var escaped bool       // tracks if next character is escaped (for double quotes or outside quotes)
 
-	// First, extract the command (first word) using Fields to handle multiple spaces
-	fields := strings.Fields(ss)
-	if len(fields) == 0 {
-		return nil
-	}
-	tokens = append(tokens, fields[0])
-
 	// Remove the command portion from the string and any leading spaces
-	ss = ss[len(fields[0]):]
 	ss = strings.TrimSpace(ss)
 
 	// Process the arguments character by character
