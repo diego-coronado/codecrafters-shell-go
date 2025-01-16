@@ -91,13 +91,15 @@ func isExecutable(fileMode fs.FileMode) bool {
 	return fileMode&0111 != 0
 }
 
-func handleSingleQuote(cmd string) []string {
+func handleQuotes(cmd string) []string {
 	// Remove any trailing newlines or carriage returns
 	ss := strings.Trim(cmd, "\r\n")
 	var tokens []string
 	var currentToken strings.Builder
 	var inSingleQuote bool // tracks if we're inside single quotes
+	var inDoubleQuote bool // tracks if we're inside double quotes
 	var lastWasQuote bool  // tracks if we just finished a quoted section (for merging adjacent quotes)
+	var escaped bool       // tracks if next character is escaped (for double quotes)
 
 	// First, extract the command (first word) using Fields to handle multiple spaces
 	fields := strings.Fields(ss)
@@ -114,30 +116,58 @@ func handleSingleQuote(cmd string) []string {
 	for i := 0; i < len(ss); i++ {
 		ch := ss[i]
 
-		if ch == '\'' {
+		if escaped {
+			// Handle escaped character in double quotes
+			if inDoubleQuote && (ch == '\\' || ch == '$' || ch == '"' || ch == '\n') {
+				currentToken.WriteByte(ch)
+			} else {
+				// If not a special escaped character in double quotes,
+				// write both the backslash and the character
+				currentToken.WriteByte('\\')
+				currentToken.WriteByte(ch)
+			}
+			escaped = false
+			continue
+		}
+
+		if ch == '\\' && inDoubleQuote {
+			escaped = true
+			continue
+		}
+
+		if ch == '\'' && !inDoubleQuote {
 			if !inSingleQuote {
-				// Found opening quote
+				// Found opening single quote
 				inSingleQuote = true
-				// Only append current token if:
-				// 1. We have accumulated characters AND
-				// 2. We're not continuing from a previous quote (for merging adjacent quotes)
 				if currentToken.Len() > 0 && !lastWasQuote {
 					tokens = append(tokens, currentToken.String())
 					currentToken.Reset()
 				}
 			} else {
-				// Found closing quote
-				// Don't append the token yet - wait to see if another quote follows
+				// Found closing single quote
 				inSingleQuote = false
 				lastWasQuote = true
 			}
+		} else if ch == '"' && !inSingleQuote {
+			if !inDoubleQuote {
+				// Found opening double quote
+				inDoubleQuote = true
+				if currentToken.Len() > 0 && !lastWasQuote {
+					tokens = append(tokens, currentToken.String())
+					currentToken.Reset()
+				}
+			} else {
+				// Found closing double quote
+				inDoubleQuote = false
+				lastWasQuote = true
+			}
 		} else {
-			if inSingleQuote {
-				// Inside quotes: preserve all characters literally, including spaces
+			if inSingleQuote || inDoubleQuote {
+				// Inside quotes: preserve all characters literally
 				currentToken.WriteByte(ch)
 			} else {
 				// Outside quotes: handle spaces as token separators
-				lastWasQuote = false // No longer in a position to merge quotes
+				lastWasQuote = false
 				if ch != ' ' {
 					// Collect non-space characters into current token
 					currentToken.WriteByte(ch)
@@ -166,7 +196,7 @@ func main() {
 		var cmdStr, err = bufio.NewReader(os.Stdin).ReadString('\n')
 		// get rid of \n
 		command := cmdStr[:len(cmdStr)-1]
-		args := handleSingleQuote(command)
+		args := handleQuotes(command)
 
 		if err != nil {
 			fmt.Println("error ", err)
